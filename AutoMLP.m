@@ -28,11 +28,11 @@ HiddenNum=200;%only one hidden layer with 200 number
 N=10000;%the iteraction number
 learningRate=0.01;%the learning rate
 tol=10e-6;
-fullConnectedNum=featureNum+HiddenNum;%update together,fully connected
+fullConnectedNum=featureNum+HiddenNum+1;%update together,fully connected
 %origin weight and bias
-w_in_hidden=randn(HiddenNum,featureNum);
+w_in_hidden=randn(HiddenNum,featureNum+1);
 w_fully_connected=randn(outputNum,fullConnectedNum);
-bias1=randn(HiddenNum,1);%hidden bias
+trainData=[trainData;ones(1,trainSize)];
 %prepare one-hot code label
 %trainOneHotMatrix=[];
 %validOneHotMatrix=[];
@@ -51,10 +51,11 @@ bias1=randn(HiddenNum,1);%hidden bias
 number=0;
 lossValueKeep=[];
 updateStep=[];
+
 while number<N
 	number=number+1;
 	%get test  data training output
-	hiddenMatrix_before=w_in_hidden*trainData+bias1;
+	hiddenMatrix_before=w_in_hidden*trainData;
 	hiddenMatrix_before=zscore(hiddenMatrix_before);
 	hiddenMatrix_after=sigmoid(hiddenMatrix_before);
 	xaMatrix=[hiddenMatrix_after;trainData];
@@ -95,13 +96,41 @@ while number<N
 	end
 	tempResult=tempResult';
 	W0=tempResult*Q';
-	w_fully_connected=W0;
-	%end OWO 
 
+	%end OWO 
 	%begin HWO find the best descend direction
+	G=[];%the best direction matrix---------------------very Important!
+	%begin MOLF to find the best z,z is  a vector
+	Gmolf=[];
+	w_hidden_out=w_fully_connected(1:HiddenNum,trainSize);
+	tempG=zeros(HiddenNum,1); 
+	for j=1:trainSize
+		tempP=2*(trainData(:,j)-outputMatrix(:,j));
+		for i=1:HiddenNum
+			temp=0;
+			y=hiddenMatrix_after(i,j);
+			%for each z
+			temp=tempP.*w_hidden_out(:,i);
+			temp=sum(temp);
+			temp=temp*y*(1-y);
+			K=G(i,:)*trainData(:,j);
+			temp=temp*K;
+			tempG(i)=tempG(i)+temp;
+		end
+	end
+	Gmolf=tempG;
+	%count z1 z2 Hessan matrix
+	Hmolf=zeros(HiddenNum,HiddenNum);
+	for i=1:HiddenNum
+		for j=1:HiddenNum
+			
+		end
+	end
+ 
+	
 	
 
-
+	w_fully_connected=W0;%update input+hidden to output
 
 end
 
