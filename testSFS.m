@@ -1,0 +1,10 @@
+clc,clear
+trainMatrix=load('trainMatrix.mat');
+trainMatrix=trainMatrix.trainMatrix;
+trainLabelMatrix=load('trainLabelMatrix.mat');
+trainLabelMatrix=trainLabelMatrix.trainLabelMatrix;
+validMatrix=load('validMatrix.mat');
+validMatrix=validMatrix.validMatrix;
+validLabelMatrix=load('validLabelMatrix.mat');
+validLabelMatrix=validLabelMatrix.validLabelMatrix;
+[validIndexMatrix,W,f_E,v_E]=preTraining(trainMatrix,trainLabelMatrix,validMatrix,validLabelMatrix);
