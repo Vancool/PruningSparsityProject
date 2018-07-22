@@ -19,10 +19,11 @@ validLabel=validLabel.validLabel;
 [m,trainSize]=size(trainData);
 [m,testSize]=size(testData);
 [m,validSize]=size(validData);
-
+groundTrueData=trainData;%auto-encoder
+[k,gSize]=size(groundTrueData);
 %original conference
 featureNum=m;
-outputNum=featureNum;
+outputNum=k;
 hiddenLayerNum=1;
 HiddenNum=200;%only one hidden layer with 200 number
 N=10000;%the iteraction number
@@ -33,6 +34,7 @@ fullConnectedNum=featureNum+HiddenNum+1;%update together,fully connected
 w_in_hidden=randn(HiddenNum,featureNum+1);
 w_fully_connected=randn(outputNum,fullConnectedNum);
 trainData=[trainData;ones(1,trainSize)];
+featureNum=m+1;
 %prepare one-hot code label
 %trainOneHotMatrix=[];
 %validOneHotMatrix=[];
@@ -56,21 +58,26 @@ while number<N
 	number=number+1;
 	%get test  data training output
 	hiddenMatrix_before=w_in_hidden*trainData;
-	hiddenMatrix_before=zscore(hiddenMatrix_before);
+	hiddenMinMatrix=min(hiddenMatrix_before);
+	hiddenMaxMatrix=max(hiddenMatrix_before);
+	normMatrix=hiddenMaxMatrix-hiddenMinMatrix;
+	normMatrix=repmat(normMatrix,outputNum,1);
+	hiddenMinMatrix=repmat(hiddenMinMatrix,outputNum,1);
+	hiddenMatrix_before=(hiddenMatrix_before-hiddenMinMatrix)./normMatrix;
 	hiddenMatrix_after=sigmoid(hiddenMatrix_before);
 	xaMatrix=[hiddenMatrix_after;trainData];
 	outputMatrix=w_fully_connected*xaMatrix;
 	%count loss 
 	lossValue=0;
 	for i=1:trainSize
-		lossTemp=sum((outputMatrix(:,i)-trainData(:,i)).^2);
+		lossTemp=sum((outputMatrix(:,i)-groundTrueData(:,i)).^2);
 		lossValue=lossValue+lossTemp;
 	end
 	lossValue=lossValue/trainSize;
 	lossValue
 	lossValueKeep=[lossValueKeep lossValue];
 	updateStep=[updateStep number];
-	if(lossValue<=0.01)
+	if(lossValue<=0.1)
 		%the loss value is small enough
 		break;
 	end
@@ -96,36 +103,12 @@ while number<N
 	end
 	tempResult=tempResult';
 	W0=tempResult*Q';
-
 	%end OWO 
 	%begin HWO find the best descend direction
-	G=[];%the best direction matrix---------------------very Important!
+	G=JacobiW(outputMatrix,groundTrueData,hiddenMatrix_after,trainData,normMatrix);
+	Ghwo=HWO(R0,G,tol);
 	%begin MOLF to find the best z,z is  a vector
-	Gmolf=[];
-	w_hidden_out=w_fully_connected(1:HiddenNum,trainSize);
-	tempG=zeros(HiddenNum,1); 
-	for j=1:trainSize
-		tempP=2*(trainData(:,j)-outputMatrix(:,j));
-		for i=1:HiddenNum
-			temp=0;
-			y=hiddenMatrix_after(i,j);
-			%for each z
-			temp=tempP.*w_hidden_out(:,i);
-			temp=sum(temp);
-			temp=temp*y*(1-y);
-			K=G(i,:)*trainData(:,j);
-			temp=temp*K;
-			tempG(i)=tempG(i)+temp;
-		end
-	end
-	Gmolf=tempG;
-	%count z1 z2 Hessan matrix
-	Hmolf=zeros(HiddenNum,HiddenNum);
-	for i=1:HiddenNum
-		for j=1:HiddenNum
-			
-		end
-	end
+	
  
 	
 	

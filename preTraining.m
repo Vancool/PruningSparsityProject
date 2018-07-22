@@ -1,9 +1,9 @@
 %pre-training function to pruning less useful inputs
-function [validIndexMatrix,W,final_E,vE]=preTraining(X,Y,vX,vY)
+function [validIndexMatrix,W,final_E,vE,A]=preTraining(X,Y,vX,vY)
 	%using gpu to training
 	[m,trainSize]=size(X);
 	[n,~]=size(Y);
-	learningRate=0.0005;
+	learningRate=0.00025;
 	tol=1000;
 	X=[X;ones(1,trainSize)];
 	m=m+1;
@@ -14,7 +14,7 @@ function [validIndexMatrix,W,final_E,vE]=preTraining(X,Y,vX,vY)
 		R=R+X(:,i)*X(:,i)';
 	end
 	[A,U]=lu(R);
-    X=A*X;
+    X=A*X;%正交化
 	W_Matrix=randn(n,m);
 	%output before---before the sigmoid activate
 	[output_before,output]=countOutput(X,W_Matrix);
@@ -24,6 +24,8 @@ function [validIndexMatrix,W,final_E,vE]=preTraining(X,Y,vX,vY)
 	EArr=E;
     sn=0;
     W=[];
+    minNum=0;
+    %开始训练
 	while(number<tol &&E>0.1&&sn<5)
 		number=number+1;
 		W_Matrix=getNewW(W_Matrix,output,output_before,Y,X,learningRate);
@@ -34,7 +36,8 @@ function [validIndexMatrix,W,final_E,vE]=preTraining(X,Y,vX,vY)
             sn
         else if E<EArr(number)
         	sn=0;
-            W=W_Matrix;
+            W=W_Matrix;%记录损失最低矩阵
+            minNum=number;
             else
             sn=0;      
             end
@@ -43,14 +46,16 @@ function [validIndexMatrix,W,final_E,vE]=preTraining(X,Y,vX,vY)
 		EArr=[EArr E];
         E
 	end
-	final_E=EArr(end);
+	final_E=EArr(minNum+1);
+    %绘图
 	plot(numArr,EArr);
 	title('epoch-Error graph')
 	xlabel('epoch')
 	ylabel('Error')
 	%after update,begin SFS algorithm
-	P=sortedInput(W);
-	[validIndexMatrix,vE]=MinimizeVError(W,vX,vY,P(2,:),A);
+    %用SFS 算法
+	P=sortedInput(W);%得到input排序
+	[validIndexMatrix,vE]=MinimizeVError(W,vX,vY,P(2,:),A);%得到有效的前validNum个input的array
 end
 
 %count E
