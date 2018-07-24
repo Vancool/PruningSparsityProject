@@ -16,6 +16,7 @@ validData=load('validMatrix.mat');
 validData=validData.validMatrix;
 validLabel=load('validLabel.mat');
 validLabel=validLabel.validLabel;
+trainData=trainData(:,1:100);% for Testing
 [m,trainSize]=size(trainData);
 [m,testSize]=size(testData);
 [m,validSize]=size(validData);
@@ -26,7 +27,7 @@ featureNum=m;
 outputNum=k;
 hiddenLayerNum=1;
 HiddenNum=200;%only one hidden layer with 200 number
-N=10000;%the iteraction number
+N=200;%the iteraction number
 learningRate=0.01;%the learning rate
 tol=10e-6;
 fullConnectedNum=featureNum+HiddenNum+1;%update together,fully connected
@@ -53,7 +54,7 @@ featureNum=m+1;
 number=0;
 lossValueKeep=[];
 updateStep=[];
-
+z=zeros(outputNum,1);
 while number<N
 	number=number+1;
 	%get test  data training output
@@ -61,8 +62,8 @@ while number<N
 	hiddenMinMatrix=min(hiddenMatrix_before);
 	hiddenMaxMatrix=max(hiddenMatrix_before);
 	normMatrix=hiddenMaxMatrix-hiddenMinMatrix;
-	normMatrix=repmat(normMatrix,outputNum,1);
-	hiddenMinMatrix=repmat(hiddenMinMatrix,outputNum,1);
+	normMatrix=repmat(normMatrix,HiddenNum,1);
+	hiddenMinMatrix=repmat(hiddenMinMatrix,HiddenNum,1);
 	hiddenMatrix_before=(hiddenMatrix_before-hiddenMinMatrix)./normMatrix;
 	hiddenMatrix_after=sigmoid(hiddenMatrix_before);
 	xaMatrix=[hiddenMatrix_after;trainData];
@@ -86,19 +87,19 @@ while number<N
 	R0=zeros(fullConnectedNum,fullConnectedNum);
 	C0=zeros(outputNum,fullConnectedNum);
 	for i=1:trainSize
-		R0=R0+xaMatrix(i,:)*xaMatrix(i,:)';
-		C0=C0+trainData(i,:)*xaMatrix(i,:)';
+		R0=R0+xaMatrix(:,i)*xaMatrix(:,i)';
+		C0=C0+groundTrueData(:,i)*xaMatrix(:,i)';
 	end
-	R0=1/trainSize;
-	C0=1/trainSize;
+	R0=R0/trainSize;
+	C0=C0/trainSize;
 	%q-r of the R
 	[Q,R]=qr(R0);
 	R=R';
 	C0=C0';
 	%solve the lower triangle result using R
 	tempResult=[];
-	for i=1:trainSize
-		temp=solveLowerTriangle(C0(i,:),R,tol);
+	for i=1:outputNum
+		temp=solveLowerTriangle(C0(:,i),R,tol);
 		tempResult=[tempResult temp];
 	end
 	tempResult=tempResult';
@@ -108,13 +109,15 @@ while number<N
 	G=JacobiW(outputMatrix,groundTrueData,hiddenMatrix_after,trainData,normMatrix);
 	Ghwo=HWO(R0,G,tol);
 	%begin MOLF to find the best z,z is  a vector
+	[resultZ,jacobiMatrix,hessianMatrix]=MOLF_Z(trainData,w_fully_connected,w_in_hidden,Ghwo,HiddenNum,z);
+ 	z=resultZ;
+ 	resultZ=repmat(resultZ,1,featureNum);
+ 	delta_weight_in_hidden=resultZ.*Ghwo;
+ 	%end MOLF
 	
- 
 	
-	
-
+ 	w_in_hidden=w_in_hidden-delta_weight_in_hidden;
 	w_fully_connected=W0;%update input+hidden to output
-
 end
 
 %after update ,output the weight and bias 

@@ -4,17 +4,17 @@ function [validIndexMatrix,W,final_E,vE,A]=preTraining(X,Y,vX,vY)
 	[m,trainSize]=size(X);
 	[n,~]=size(Y);
 	learningRate=0.00025;
-	tol=1000;
+	tol=100;
 	X=[X;ones(1,trainSize)];
 	m=m+1;
 	%count correlation matrices
-	R=zeros(m,m);
+%	R=zeros(m,m);
  %   R=gpuArray(R);
-	for i=1:trainSize
-		R=R+X(:,i)*X(:,i)';
-	end
-	[A,U]=lu(R);
-    X=A*X;%正交化
+	%for i=1:trainSize
+	%	R=R+X(:,i)*X(:,i)';
+	%end
+	%[A,U]=lu(R);
+   % X=A*X;%正交化
 	W_Matrix=randn(n,m);
 	%output before---before the sigmoid activate
 	[output_before,output]=countOutput(X,W_Matrix);
@@ -45,17 +45,25 @@ function [validIndexMatrix,W,final_E,vE,A]=preTraining(X,Y,vX,vY)
 		numArr=[numArr number];
 		EArr=[EArr E];
         E
-	end
+        %pruning
+        %用SFS 算法
+        [oX,oW]=schmidtFun(X,Y,0);
+        P=sortedInput(oW);%得到input排序
+        [validIndexMatrix,vE]=MinimizeVError(oW,vX,vY,P(2,:));%得到有效的前validNum个input的array
+        %剪枝
+        validIndexMatrix=repmat(validIndexMatrix,1,trainSize);
+        X=X*validIndexMatrix;
+    end
+    validIndexMatrix=validIndexMatrix(:,1);
 	final_E=EArr(minNum+1);
     %绘图
 	plot(numArr,EArr);
 	title('epoch-Error graph')
 	xlabel('epoch')
 	ylabel('Error')
-	%after update,begin SFS algorithm
-    %用SFS 算法
-	P=sortedInput(W);%得到input排序
-	[validIndexMatrix,vE]=MinimizeVError(W,vX,vY,P(2,:),A);%得到有效的前validNum个input的array
+	
+
+	
 end
 
 %count E
@@ -122,12 +130,12 @@ function P=sortedInput(W)
 	P=[temp';sortedIndex'];
 end
 %using IndexArray to find the best number of input and inputMatrix
-function [validIndexMatrix,vE]=MinimizeVError(W,vX,vY,xIndexArray,A)
+function [validIndexMatrix,vE]=MinimizeVError(W,vX,vY,xIndexArray)
 	n=length(xIndexArray);% the input size
 	[m,validationSize]=size(vX);
     vX=[vX;ones(1,validationSize)];
     m=m+1;
-	vX=A*vX;
+    [vX,~]=schmidtFun(vX,vY,1);
 	vE=[];
 	%i -- the number of x Input
 	for i=1:n

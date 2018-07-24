@@ -1,7 +1,7 @@
 %solve the result of lower triangle matrix
 function result=solveLowerTriangle(y,C,tol)
-	result(1)=y(1)/C(1,1);
 	m=length(y);
+	result=zeros(m,1);
 	for i=1:m
 		k=0;
 		if(i>=2)
@@ -10,7 +10,7 @@ function result=solveLowerTriangle(y,C,tol)
 			end	
 		end
 		k=y(i)-k;
-		if(C(i,i)<tol)
+		if(abs(C(i,i))<tol)
 			result(i)=0;
 		else
 			result(i)=k/C(i,i);

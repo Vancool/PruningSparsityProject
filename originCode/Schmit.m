@@ -1,4 +1,4 @@
-function [ MSE,w ] = Schmit( R, C, Nu, M, Et )
+function [ MSE,w,a ] = Schmit( R, C, Nu, M, Et )
 %UNTITLED5 Summary of this function goes here
 %   Detailed explanation goes here
 	gmin = 0.000001;
