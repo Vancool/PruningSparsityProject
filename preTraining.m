@@ -1,5 +1,5 @@
 %pre-training function to pruning less useful inputs
-function [validIndexMatrix,W,final_E,vE,A]=preTraining(X,Y,vX,vY)
+function [validIndexMatrix,W,final_E,vE,vNum]=preTraining(X,Y,vX,vY)
 	%using gpu to training
 	[m,trainSize]=size(X);
 	[n,~]=size(Y);
@@ -16,6 +16,7 @@ function [validIndexMatrix,W,final_E,vE,A]=preTraining(X,Y,vX,vY)
 	%[A,U]=lu(R);
    % X=A*X;%正交化
 	W_Matrix=randn(n,m);
+    
 	%output before---before the sigmoid activate
 	[output_before,output]=countOutput(X,W_Matrix);
 	number=0;
@@ -26,7 +27,16 @@ function [validIndexMatrix,W,final_E,vE,A]=preTraining(X,Y,vX,vY)
     W=[];
     minNum=0;
     %开始训练
-	while(number<tol &&E>0.1&&sn<5)
+	while(number<tol &&E>0.1&&sn<6)
+        %pruning
+        %用SFS 算法
+        [oX,oW]=schmidtFun(X,Y,0);
+        P=sortedInput(oW);%得到input排序
+        [validIndexMatrix,vE,vNum]=MinimizeVError(oW,vX,vY,P(2,:));%得到有效的前validNum个input的array
+        vNum
+        %剪枝
+        validIndexMatrix=repmat(validIndexMatrix,1,trainSize);
+        X=X.*validIndexMatrix;
 		number=number+1;
 		W_Matrix=getNewW(W_Matrix,output,output_before,Y,X,learningRate);
 		[output_before,output]=countOutput(X,W_Matrix);
@@ -45,19 +55,11 @@ function [validIndexMatrix,W,final_E,vE,A]=preTraining(X,Y,vX,vY)
 		numArr=[numArr number];
 		EArr=[EArr E];
         E
-        %pruning
-        %用SFS 算法
-        [oX,oW]=schmidtFun(X,Y,0);
-        P=sortedInput(oW);%得到input排序
-        [validIndexMatrix,vE]=MinimizeVError(oW,vX,vY,P(2,:));%得到有效的前validNum个input的array
-        %剪枝
-        validIndexMatrix=repmat(validIndexMatrix,1,trainSize);
-        X=X*validIndexMatrix;
     end
     validIndexMatrix=validIndexMatrix(:,1);
 	final_E=EArr(minNum+1);
     %绘图
-	plot(numArr,EArr);
+	plot(numArr,EArr,'LineWidth',4');
 	title('epoch-Error graph')
 	xlabel('epoch')
 	ylabel('Error')
@@ -130,7 +132,7 @@ function P=sortedInput(W)
 	P=[temp';sortedIndex'];
 end
 %using IndexArray to find the best number of input and inputMatrix
-function [validIndexMatrix,vE]=MinimizeVError(W,vX,vY,xIndexArray)
+function [validIndexMatrix,vE,vInputNum]=MinimizeVError(W,vX,vY,xIndexArray)
 	n=length(xIndexArray);% the input size
 	[m,validationSize]=size(vX);
     vX=[vX;ones(1,validationSize)];

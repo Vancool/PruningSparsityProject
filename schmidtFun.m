@@ -1,11 +1,10 @@
 function [O,W]=schmidtFun(C,Y,hasOrder)
 	O(:,1)=C(:,1)/norm(C(:,1));
 	[m,n]=size(C);
-	A=zeros(m,m);
-	for i=2:m
+	for i=2:n
 		res=C(:,i);
 		for j=1:i-1
-			res=res-O(:,j)*res*v(:,j);
+			res=res-O(:,j)'*res*O(:,j);
 		end
 		O(:,i)=res/norm(res);
 	end
@@ -13,7 +12,7 @@ function [O,W]=schmidtFun(C,Y,hasOrder)
 	if(hasOrder==1)
 		W=[];
 	else
-		W=solveResult(O,Y);	
+		W=getW(O,Y);	
 	end
 	
 
@@ -23,16 +22,16 @@ function W=getW(X,Y)
 	[m,n]=size(X);
 	[a,b]=size(Y);
 	tempX=zeros(m,m);
-	tempY=zeros(m,n);
+	tempY=zeros(a,m);
 	for i=1:n
-		tempX=X(:,i)*X(:,i)';
-		tempY=Y(:,i)*X(:,i)';
+		tempX=X(:,i)*X(:,i)'+tempX;
+		tempY=Y(:,i)*X(:,i)'+tempY;
 	end
 	[Q,R]=qr(tempX);
 	tempY=tempY';
 	R=R';
 	solveResult=[];
-	for i=1:m
+	for i=1:a
 		solveResult=[solveResult solveLowerTriangle(tempY(:,i),R,tol)];
 	end
 	solveResult=solveResult';

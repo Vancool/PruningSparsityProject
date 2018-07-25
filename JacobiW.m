@@ -1,20 +1,26 @@
 %count jacobi matrix of output error respect to weight
-function G=JacobiW(predictMatrix,groundTrueMatrix,hidden_after,X,normMatrix)
+function G=JacobiW(predictMatrix,groundTrueMatrix,hidden_after,X,normMatrix,weight_hidden_output)
 	[m,n]=size(predictMatrix);
-	[a,b]=size(X);
+	[inputNum,dataNum]=size(X);
+	[outputNum,hiddenNum]=size(weight_hidden_output);
 	dataSize=n;
-	temp=1/dataSize*(predictMatrix- groundTrueMatrix);
-	temp=temp*(ones(n,n)./normMatrix);
-	k=sigmoidDerivative(hidden_after);
-	temp=temp.*k;
-	G=zeros(m,a);
-    3
+	% the gradient procedure
+	temp=2/n*(predictMatrix- groundTrueMatrix);
+	G=zeros(hiddenNum,inputNum);
 	for i=1:n
 		thisTemp=temp(:,i);
-		for j=1:m
-			for z=1:a
-				G(j,z)=thisTemp(j)*X(z,i)+G(j,z);
+		thisX=X(:,i);
+		thisHid=hidden_after(:,i);
+		totalVal=zeros(hiddenNum,1);
+		for j=1:outputNum
+			for z=1:hiddenNum
+				totalVal(z)=totalVal(z)+thisTemp(j)*weight_hidden_output(j,z)*sigmoidDerivative(thisHid(z));
 			end
+		end
+		for i=1:inputNum
+			for j=1:hiddenNum	
+				G(j,i)=G(j,i)+totalVal(j)*thisX(i);
+			end 
 		end
 	end
 end

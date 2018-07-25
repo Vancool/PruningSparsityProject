@@ -1,18 +1,18 @@
 %MOLF -count the jacobi matrix and hessian matrix of output error function respect to learning rate
-function [resultZ,jacobiMatrix,hessianMatrix]=MOLF_Z(X,w_f,w_in_hidden,G,hiddenNum,previousZ)
-	[outputNum,inputNum]=size(w_hidden_output);
+function [resultZ,jacobiMatrix,hessianMatrix]=MOLF_Z(X,w_f,w_in_hidden,G,previousZ)
+    [inputNum,dataSize]=size(X);
+    [hiddenNum,inputNum]=size(w_in_hidden);
 	Z=sym('Z',[hiddenNum,1]);
     
 	temp=[];
-	for i =1:hiddenNum
-		temp=[temp;G(i,:)*Z(i)];
-	end
+	tempZ=repmat(Z,1,inputNum);
+	temp=G.*tempZ;
 	Op=(w_in_hidden+temp)*X;
 	OpMin=min(Op);
 	OpMax=max(Op);
 	OpNorm=OpMax-OpMin;
-	OpNorm=repmat(OpNorm,outputNum,1);
-	OpMin=repmat(OpMin,outputNum,1);
+	OpNorm=repmat(OpNorm,hiddenNum,1);
+	OpMin=repmat(OpMin,hiddenNum,1);
 	Op=(Op-OpMin)./OpNorm;
 	K=sigmoid(Op);
 	xa=[K;X];
