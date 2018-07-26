@@ -5,7 +5,7 @@ function [E,validIndexMatrix,vNum,w_in_hidden,w_fully_connected]=MLP_P(X,Y,isAut
 	inputNum=inputNum+1;
 	if dataSize~=dataSize1
 		disp('data is invalid!');
-		return 0	
+		return 	
 	end
 	learningRate=0.001;
 	tol=10e-6;
@@ -34,7 +34,7 @@ function [E,validIndexMatrix,vNum,w_in_hidden,w_fully_connected]=MLP_P(X,Y,isAut
 		outputMatrix=w_fully_connected*xaMatrix;
 		loss=0;
 		lossMatrix=(Y-outputMatrix).^2;
-		loss=sum(sum(lossMatrix))*dataSize
+		loss=sum(sum(lossMatrix))/dataSize
 		lossValueArr=[lossValueArr loss];
 		E=loss;
 		updateStep=[updateStep number];
@@ -55,7 +55,7 @@ function [E,validIndexMatrix,vNum,w_in_hidden,w_fully_connected]=MLP_P(X,Y,isAut
 		C0=C0';
 		tempResult=[];
 		for i=1:outputNum
-			temp=sovleLowerTriangle(C0(:,i),R,tol);
+			temp=solveLowerTriangle(C0(:,i),R,tol);
 			tempResult=[tempResult temp];
 		end
 		tempResult=tempResult';
@@ -64,8 +64,8 @@ function [E,validIndexMatrix,vNum,w_in_hidden,w_fully_connected]=MLP_P(X,Y,isAut
 		%begin HWO find the best descend direction
 		w_hidden_out=w_fully_connected(:,1:hiddenNum);
 		G=JacobiW(outputMatrix,Y,hiddenmatrix_after,X,normMatrix,w_hidden_out);
-		R1=zero(inputNum,inputNum);
-		for i=1:inputNum
+		R1=zeros(inputNum,inputNum);
+		for i=1:dataSize
 			R1=R1+X(:,i)*X(:,i)';
 		end
 		Ghwo=HWO(R1,G,tol);
@@ -79,22 +79,25 @@ function [E,validIndexMatrix,vNum,w_in_hidden,w_fully_connected]=MLP_P(X,Y,isAut
 		if(number==prunRate)
 			number=0;
 			[oX,oW]=schimidtFun(xaMatrix,Y,0);
-			p=sortedInput(oW);
+			P=sortedInput(oW);
 			[validIndexMatrix,vE,vNum]=MinimizeVError(oW,vX,vY,P(2,:));
-		end
-		validIndexMatrix=repmat(validIndexMatrix,1,dataSize);
-		%cut xa unit
-		X=X.*validIndexMatrix;
-		validIndexMatrix=validIndexMatrix(:,1);
+            lidIndexMatrix=repmat(validIndexMatrix,1,dataSize);
+            %cut xa unit
+            X=X.*validIndexMatrix;
+            validIndexMatrix=validIndexMatrix(:,1);
+        end
 		%update the weight and bias
 		w_in_hidden=w_in_hidden-delta_weight_in_hidden;
 		w_fully_connected=W0;
-		%cut weight--->0
-		w_clear_Matrix=repmat(validIndexMatrix(hiddenNum+1:end),1,hiddenNum);
-		w_clear_Matrix=w_clear_Matrix';
-		w_in_hidden=w_clear_Matrix.*w_in_hidden;
-		w_clear_Matrix=repmat(validIndexMatrix,1,outputNum);
-		w_fully_connected=w_clear_Matrix'.*w_fully_connected;
+        if(number==prunRate)
+            %cut weight--->0
+            w_clear_Matrix=repmat(validIndexMatrix(hiddenNum+1:end),1,hiddenNum);
+        	w_clear_Matrix=w_clear_Matrix';
+            w_in_hidden=w_clear_Matrix.*w_in_hidden;
+            w_clear_Matrix=repmat(validIndexMatrix,1,outputNum);
+            w_fully_connected=w_clear_Matrix'.*w_fully_connected;
+        end
+		
 	end
 	plot(updateStep,lossValueArr,'LineWidth',3);
 	xlabel('updating epoch');
